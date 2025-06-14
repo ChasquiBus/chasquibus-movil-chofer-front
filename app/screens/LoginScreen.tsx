@@ -12,7 +12,7 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     // Aquí iría la lógica de autenticación
-    // router.push('/(tabs)');
+     router.push('/screens/HomeChoferScreen');
   };
 
   return (

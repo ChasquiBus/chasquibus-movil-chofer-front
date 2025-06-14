@@ -6,6 +6,7 @@ import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import welcome1 from '../../assets/images/welco.png';
 import welcome2 from '../../assets/images/welco2.png';
 import welcome3 from '../../assets/images/welco3.png';
+import { LinearGradient } from 'expo-linear-gradient'; // Agregar esta importación
 
 const slides = [welcome1, welcome2, welcome3];
 
@@ -33,13 +34,17 @@ export default function WelcomeScreen() {
   }, []);
 
   const handleLogin = () => {
-    router.push('/(tabs)');
+    router.push('/screens/LoginScreen');
   };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
+      <LinearGradient
+          colors={['#B3C6FF', '#FFFFFF']}
+          style={styles.gradient}
+        />
         <StatusBar style="dark" />
         <View style={styles.contentContainer}>
           <Animated.View style={[styles.imageContainer, { opacity: fadeAnim }]}>
@@ -141,5 +146,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  gradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    zIndex: 0,
   },
 }); 

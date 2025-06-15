@@ -51,7 +51,7 @@ export default function HomeChoferScreen() {
         </View>
         <Text style={styles.title}>OPCIONES</Text>
         <View style={styles.optionsContainer}>
-          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/screens/HomeChoferScreen')}>
+          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/screens/QRScannerScreen')}>
             <Ionicons name="qr-code" size={40} color="#1200d3" style={styles.icon} />
             <View style={styles.infoContainer}>
               <Text style={styles.optionTitle}>Escanear QR</Text>
@@ -79,11 +79,11 @@ export default function HomeChoferScreen() {
               <Ionicons name="person-circle" size={70} color="#1200d3" />
               <Text style={styles.drawerUserName}>John Carrillo</Text>
             </View>
-            <TouchableOpacity style={styles.drawerItem} onPress={() => handleNavigate('/screens/HomeChoferScreen')}>
+            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/QRScannerScreen')}>
               <Ionicons name="qr-code" size={26} color="#1200d3" style={{ marginRight: 16 }} />
               <Text style={styles.drawerItemText}>Escanear QR</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.drawerItem} onPress={() => handleNavigate('/screens/HomeChoferScreen')}>
+            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/HomeChoferScreen')}>
               <Ionicons name="people" size={26} color="#1200d3" style={{ marginRight: 16 }} />
               <Text style={styles.drawerItemText}>Lista de Pasajeros</Text>
             </TouchableOpacity>

@@ -1,67 +1,203 @@
-import { LinearGradient } from 'expo-linear-gradient'; // Agregar esta importación
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { 
+  Image, 
+  StyleSheet, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  View,
+  Modal,
+  Animated,
+  Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+// Interfaces para TypeScript
+interface LoginResponse {
+  access_token?: string;
+  message?: string;
+  user?: {
+    id: string;
+    email: string;
+    nombre?: string;
+    apellido?: string;
+    cedula?: string;
+    telefono?: string;
+    activo?: boolean;
+    rol?: number; // Campo rol de la base de datos
+  };
+}
+
+interface ApiError {
+  message?: string;
+  error?: string;
+}
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const successAnim = useRef(new Animated.Value(0)).current;
 
-  const handleLogin = () => {
-    // Aquí iría la lógica de autenticación
-     router.push('/screens/HomeChoferScreen');
+  const handleLogin = async () => {
+    // Validar campos vacíos
+    if (!email.trim() || !password.trim()) {
+      setError('Por favor ingresa email y contraseña');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    
+    try {
+      const response = await fetch('http://192.168.100.208:3005/auth/login', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password 
+        })
+      });
+
+      let data: LoginResponse = {};
+      try {
+        data = await response.json() as LoginResponse;
+      } catch (e) {
+        data = {};
+      }
+
+      // Éxito si status 2xx y hay access_token
+      if (response.ok && data.access_token) {
+        // Validar que el usuario esté activo
+        if (data.user?.activo === false) {
+          setError('Tu cuenta está inactiva. Contacta al administrador');
+          return;
+        }
+
+        // Validar que el usuario tenga rol 3
+        if (!data.user?.rol || data.user.rol !== 3) {
+          setError('No tienes permisos para acceder a esta aplicación');
+          return;
+        }
+
+        setError('');
+        setShowSuccessModal(true);
+        
+        // Animación de éxito
+        Animated.timing(successAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+
+        // Esperar y redirigir
+        setTimeout(() => {
+          Animated.timing(successAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowSuccessModal(false);
+            router.push('/screens/HomeChoferScreen');
+          });
+        }, 1200);
+
+      } else if (response.status === 401) {
+        setError('Correo o contraseña incorrectos');
+      } else if (data.message) {
+        setError(data.message);
+      } else {
+        setError('Error al iniciar sesión. Intenta nuevamente');
+      }
+
+    } catch (error) {
+      console.error('Error de conexión:', error);
+      setError('Error de conexión. Verifica tu internet');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    // Navegar a pantalla de recuperación de contraseña
+    Alert.alert('Función no implementada', 'Próximamente disponible');
   };
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={styles.container}>
-        {/* Reemplazar el View gradient por LinearGradient */}
         <LinearGradient
           colors={['#B3C6FF', '#FFFFFF']}
           style={styles.gradient}
         />
         <View style={styles.contentContainer}>
-          <Image source={require('../../assets/images/welco.png')} style={styles.logo} resizeMode="contain" />
+          <Image 
+            source={require('../../assets/images/welco.png')} 
+            style={styles.logo} 
+            resizeMode="contain" 
+          />
           <Text style={styles.title}>Inicio Sesión</Text>
           <Text style={styles.subtitle}>
             ¡Escanea, valida y controla los asientos de tu bus fácilmente!
           </Text>
+
+          {/* Campo Email */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo Electronico</Text>
+            <Text style={styles.label}>Correo Electrónico</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, error && styles.inputError]}
               placeholder="hello@example.com"
               placeholderTextColor="#BDBDBD"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                if (error) setError(''); // Limpiar error al escribir
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!loading}
             />
           </View>
+
+          {/* Campo Contraseña */}
           <View style={styles.inputContainer}>
             <View style={styles.passwordLabelRow}>
               <Text style={styles.label}>Contraseña</Text>
-              <TouchableOpacity onPress={() => { }} style={styles.forgotPasswordBtn}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <TouchableOpacity 
+                onPress={handleForgotPassword} 
+                style={styles.forgotPasswordBtn}
+                disabled={loading}
+              >
+                <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.passwordInputWrapper}>
               <TextInput
-                style={styles.inputPassword}
+                style={[styles.inputPassword, error && styles.inputError]}
                 placeholder="••••••••••••••••"
                 placeholderTextColor="#BDBDBD"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (error) setError(''); // Limpiar error al escribir
+                }}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeButtonInside}
+                disabled={loading}
               >
                 <Ionicons
                   name={showPassword ? 'eye' : 'eye-off'}
@@ -71,10 +207,46 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Iniciar Sesión</Text>
+
+          {/* Mostrar error si existe */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Botón de Login */}
+          <TouchableOpacity 
+            style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Modal de éxito */}
+        <Modal
+          visible={showSuccessModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {}}
+        >
+          <Animated.View style={[
+            styles.modalOverlay,
+            { opacity: successAnim }
+          ]}>
+            <View style={styles.successModalBox}>
+              <View style={styles.successIconCircle}>
+                <Ionicons name="checkmark-circle" size={64} color="#22C55E" />
+              </View>
+              <Text style={styles.successTitle}>¡Bienvenido!</Text>
+              <Text style={styles.successSubtitle}>Inicio de sesión exitoso</Text>
+            </View>
+          </Animated.View>
+        </Modal>
       </View>
     </>
   );
@@ -141,6 +313,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#0F172A',
   },
+  inputError: {
+    borderColor: '#EF4444',
+  },
   passwordLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -171,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fff',
     color: '#0F172A',
-    paddingRight: 44, // espacio para el icono
+    paddingRight: 44,
   },
   eyeButtonInside: {
     position: 'absolute',
@@ -183,6 +358,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     zIndex: 2,
   },
+  errorContainer: {
+    width: '100%',
+    backgroundColor: '#FEE2E2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   primaryButton: {
     backgroundColor: '#1200d3',
     paddingVertical: 15,
@@ -192,10 +381,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
+  buttonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingVertical: 36,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    minWidth: 260,
+  },
+  successIconCircle: {
+    backgroundColor: '#E6F9ED',
+    borderRadius: 50,
+    padding: 12,
+    marginBottom: 18,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#22C55E',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
   },
 });

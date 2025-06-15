@@ -20,7 +20,7 @@ export default function PassengerListScreen() {
             <Ionicons name="arrow-back" size={30} color="#1200d3" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>PASAJEROS</Text>
-          <View style={{ width: 30 }} /> {/* Spacer to balance the back button */}
+          <View style={{ width: 30 }} /> 
         </View>
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           <View style={styles.passengerCard}>

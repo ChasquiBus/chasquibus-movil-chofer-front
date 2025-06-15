@@ -170,7 +170,7 @@ export default function QRScannerScreen() {
         }}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.push('/screens/HomeChoferScreen')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitleWhite}>Escáner QR</Text>

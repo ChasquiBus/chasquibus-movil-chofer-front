@@ -58,7 +58,7 @@ export default function HomeChoferScreen() {
               <Text style={styles.optionDesc}>Escanea boletos de los pasajeros</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/screens/HomeChoferScreen')}>
+          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/screens/PassengerListScreen')}>
             <Ionicons name="people" size={40} color="#1200d3" style={styles.icon} />
             <View style={styles.infoContainer}>
               <Text style={styles.optionTitle}>Lista de Pasajeros</Text>
@@ -83,7 +83,7 @@ export default function HomeChoferScreen() {
               <Ionicons name="qr-code" size={26} color="#1200d3" style={{ marginRight: 16 }} />
               <Text style={styles.drawerItemText}>Escanear QR</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/HomeChoferScreen')}>
+            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/PassengerListScreen')}>
               <Ionicons name="people" size={26} color="#1200d3" style={{ marginRight: 16 }} />
               <Text style={styles.drawerItemText}>Lista de Pasajeros</Text>
             </TouchableOpacity>

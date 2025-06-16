@@ -1,18 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, useRef } from 'react';
-import { 
-  Image, 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View,
-  Modal,
+import React, { useRef, useState } from 'react';
+import {
+  Alert,
   Animated,
-  Alert
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { useUser } from '../context/UserContext';
 
 // Interfaces para TypeScript
 interface LoginResponse {
@@ -37,6 +38,7 @@ interface ApiError {
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { setUser } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -88,6 +90,12 @@ export default function LoginScreen() {
           return;
         }
 
+        // Guardar datos del usuario en el contexto
+        setUser({
+          nombre: data.user.nombre || '',
+          apellido: data.user.apellido || ''
+        });
+
         setError('');
         setShowSuccessModal(true);
         
@@ -106,7 +114,15 @@ export default function LoginScreen() {
             useNativeDriver: true,
           }).start(() => {
             setShowSuccessModal(false);
-            router.push('/screens/HomeChoferScreen');
+            router.push({
+              pathname: '/screens/HomeChoferScreen',
+              params: {
+                user: JSON.stringify({
+                  nombre: data.user?.nombre,
+                  apellido: data.user?.apellido
+                })
+              }
+            });
           });
         }, 1200);
 

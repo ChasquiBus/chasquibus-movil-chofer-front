@@ -3,9 +3,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useUser } from '../context/UserContext';
 
 export default function HomeChoferScreen() {
   const router = useRouter();
+  const { user } = useUser();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const drawerAnim = useRef(new Animated.Value(-270)).current; // Drawer width
 
@@ -43,7 +45,7 @@ export default function HomeChoferScreen() {
         <View style={styles.headerContainer}>
           <Ionicons name="person-circle" size={60} color="#1200d3" style={{ marginRight: 10 }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.holaText}>Hola, <Text style={styles.nombreText}>John Carrillo</Text></Text>
+            <Text style={styles.holaText}>Hola, <Text style={styles.nombreText}>{user?.nombre} {user?.apellido}</Text></Text>
           </View>
           <TouchableOpacity onPress={openDrawer}>
             <Ionicons name="menu" size={36} color="#1200d3" />
@@ -77,7 +79,7 @@ export default function HomeChoferScreen() {
           <Animated.View style={[styles.drawerContainer, { left: drawerAnim }]}>
             <View style={styles.drawerHeader}>
               <Ionicons name="person-circle" size={70} color="#1200d3" />
-              <Text style={styles.drawerUserName}>John Carrillo</Text>
+              <Text style={styles.drawerUserName}>{user?.nombre} {user?.apellido}</Text>
             </View>
             <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/QRScannerScreen')}>
               <Ionicons name="qr-code" size={26} color="#1200d3" style={{ marginRight: 16 }} />

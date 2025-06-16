@@ -134,7 +134,7 @@ export default function QRScannerScreen() {
         <LinearGradient colors={['#B3C6FF', '#FFFFFF']} style={styles.gradient} />
         
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.push('/screens/HomeChoferScreen')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#1200d3" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Escáner QR</Text>

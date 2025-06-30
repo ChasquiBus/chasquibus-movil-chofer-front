@@ -14,6 +14,7 @@ import {
   View
 } from 'react-native';
 import { useUser } from '../context/UserContext';
+import Constants from 'expo-constants';
 
 // Interfaces para TypeScript
 interface LoginResponse {
@@ -56,9 +57,10 @@ export default function LoginScreen() {
 
     setError('');
     setLoading(true);
+    const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://localhost:3001/';
     
     try {
-      const response = await fetch('http://192.168.100.208:3005/auth/login', {
+      const response = await fetch(`${API_URL}auth/login`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json' 
@@ -93,7 +95,8 @@ export default function LoginScreen() {
         // Guardar datos del usuario en el contexto
         setUser({
           nombre: data.user.nombre || '',
-          apellido: data.user.apellido || ''
+          apellido: data.user.apellido || '',
+          token: data.access_token || ''
         });
 
         setError('');

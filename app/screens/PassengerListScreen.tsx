@@ -1,11 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { useUser } from '../context/UserContext';
+import Constants from 'expo-constants';
 
 export default function PassengerListScreen() {
   const router = useRouter();
+  const { hojaTrabajoId, codigo, origen, destino, hora, placa } = useLocalSearchParams();
+  const { user } = useUser();
+  const [pasajeros, setPasajeros] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchPasajeros = async () => {
+      if (!user?.token || !hojaTrabajoId) return;
+      setLoading(true);
+      setError('');
+      const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://localhost:3001/';
+      try {
+        const res = await fetch(`${API_URL}boletos/chofer?hojaTrabajoId=${hojaTrabajoId}`, {
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setPasajeros(data);
+        } else {
+          setError(data.message || 'Error al obtener pasajeros');
+        }
+      } catch (e) {
+        setError('Error de conexión');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPasajeros();
+  }, [user, hojaTrabajoId]);
 
   return (
     <>
@@ -16,58 +50,41 @@ export default function PassengerListScreen() {
           style={styles.gradient}
         />
         <View style={styles.headerContainer}>
-          <TouchableOpacity onPress={() => router.push('/screens/HomeChoferScreen')} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.push('/screens/ChoferRoutesScreen')} style={styles.backButton}>
             <Ionicons name="arrow-back" size={30} color="#1200d3" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>PASAJEROS</Text>
-          <View style={{ width: 30 }} /> 
+          <View style={{ width: 30 }} />
         </View>
-        <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <View style={styles.passengerCard}>
-            <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
-            <View style={styles.passengerInfo}>
-              <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>1805548996</Text></Text>
-              <Text style={styles.passengerName}>Juan Edison Mejía Perez</Text>
-              <Text style={styles.passengerDetails}>22 años</Text>
-              <Text style={styles.passengerDetails}>Hombre</Text>
-            </View>
-            
-          </View>
-
-          <View style={styles.passengerCard}>
-            <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
-            <View style={styles.passengerInfo}>
-              <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>1805548996</Text></Text>
-              <Text style={styles.passengerName}>Camilo Edgar Naranjo Camacho</Text>
-              <Text style={styles.passengerDetails}>25 años</Text>
-              <Text style={styles.passengerDetails}>Hombre</Text>
-            </View>
-            
-          </View>
-
-          <View style={styles.passengerCard}>
-            <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
-            <View style={styles.passengerInfo}>
-              <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>1805548996</Text></Text>
-              <Text style={styles.passengerName}>Kevin Javier Jara Medina</Text>
-              <Text style={styles.passengerDetails}>22 años</Text>
-              <Text style={styles.passengerDetails}>Hombre</Text>
-            </View>
-            
-          </View>
-
-          <View style={styles.passengerCard}>
-            <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
-            <View style={styles.passengerInfo}>
-              <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>1805548996</Text></Text>
-              <Text style={styles.passengerName}>Juan Edison Mejía Perez</Text>
-              <Text style={styles.passengerDetails}>22 años</Text>
-              <Text style={styles.passengerDetails}>Hombre</Text>
-            </View>
-            
-          </View>
-
-        </ScrollView>
+        <View style={{ marginHorizontal: 20, marginBottom: 10 }}>
+          <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Ruta: <Text style={{ color: '#000' }}>{codigo}</Text></Text>
+          <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Origen: <Text style={{ color: '#000' }}>{origen}</Text></Text>
+          <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Destino: <Text style={{ color: '#000' }}>{destino}</Text></Text>
+          <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Hora salida: <Text style={{ color: '#000' }}>{hora}</Text></Text>
+          {placa && <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Bus: <Text style={{ color: '#000' }}>{placa}</Text></Text>}
+        </View>
+        {loading ? (
+          <ActivityIndicator size="large" color="#1200d3" style={{ marginTop: 30 }} />
+        ) : error ? (
+          <Text style={{ color: 'red', marginLeft: 20, marginTop: 20 }}>{error}</Text>
+        ) : (
+          <ScrollView contentContainerStyle={styles.scrollViewContent}>
+            {pasajeros.length === 0 ? (
+              <Text style={{ marginLeft: 20, color: '#888' }}>No hay pasajeros para esta ruta.</Text>
+            ) : pasajeros.map((p) => (
+              <View key={p.id} style={styles.passengerCard}>
+                <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
+                <View style={styles.passengerInfo}>
+                  <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>{p.cedula}</Text></Text>
+                  <Text style={styles.passengerName}>{p.nombre}</Text>
+                  <Text style={styles.passengerDetails}>Total sin descuento: $ {p.totalSinDescPorPers}</Text>
+                  <Text style={styles.passengerDetails}>Descuento: $ {p.totalDescPorPers}</Text>
+                  <Text style={styles.passengerDetails}>Total pagado: $ {p.totalPorPer}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        )}
       </View>
     </>
   );

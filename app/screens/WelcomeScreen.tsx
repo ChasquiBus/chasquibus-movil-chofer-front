@@ -7,13 +7,21 @@ import welcome1 from '../../assets/images/welco.png';
 import welcome2 from '../../assets/images/welco2.png';
 import welcome3 from '../../assets/images/welco3.png';
 import { LinearGradient } from 'expo-linear-gradient'; // Agregar esta importación
+import { useUser } from '../context/UserContext';
 
 const slides = [welcome1, welcome2, welcome3];
 
 export default function WelcomeScreen() {
+  const { user } = useUser();
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (user) {
+      router.replace('/screens/HomeChoferScreen');
+    }
+  }, [user]);
 
   useEffect(() => {
     const timer = setInterval(() => {

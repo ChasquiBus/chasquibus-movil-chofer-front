@@ -7,7 +7,7 @@ import { useUser } from '../context/UserContext';
 
 export default function HomeChoferScreen() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, setUser } = useUser();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const drawerAnim = useRef(new Animated.Value(-270)).current; // Drawer width
 
@@ -60,11 +60,11 @@ export default function HomeChoferScreen() {
               <Text style={styles.optionDesc}>Escanea boletos de los pasajeros</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('/screens/PassengerListScreen')}>
-            <Ionicons name="people" size={40} color="#1200d3" style={styles.icon} />
+          <TouchableOpacity style={styles.optionCard} onPress={() => router.push('./ChoferRoutesScreen')}>
+            <Ionicons name="bus" size={40} color="#1200d3" style={styles.icon} />
             <View style={styles.infoContainer}>
-              <Text style={styles.optionTitle}>Lista de Pasajeros</Text>
-              <Text style={styles.optionDesc}>Ver todos los pasajeros del viaje</Text>
+              <Text style={styles.optionTitle}>Rutas del Chofer</Text>
+              <Text style={styles.optionDesc}>Ver rutas asignadas para hoy</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -85,13 +85,14 @@ export default function HomeChoferScreen() {
               <Ionicons name="qr-code" size={26} color="#1200d3" style={{ marginRight: 16 }} />
               <Text style={styles.drawerItemText}>Escanear QR</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('/screens/PassengerListScreen')}>
-              <Ionicons name="people" size={26} color="#1200d3" style={{ marginRight: 16 }} />
-              <Text style={styles.drawerItemText}>Lista de Pasajeros</Text>
+            <TouchableOpacity style={styles.drawerItem} onPress={() => router.push('./ChoferRoutesScreen')}>
+              <Ionicons name="bus" size={26} color="#1200d3" style={{ marginRight: 16 }} />
+              <Text style={styles.drawerItemText}>Rutas del Chofer</Text>
             </TouchableOpacity>
             <View style={styles.drawerDivider} />
-            <TouchableOpacity style={styles.drawerItem} onPress={() => {
+            <TouchableOpacity style={styles.drawerItem} onPress={async () => {
               closeDrawer();
+              await setUser(null);
               setTimeout(() => {
                 router.push('/screens/LoginScreen');
               }, 250);

@@ -11,7 +11,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard
 } from 'react-native';
 import { useUser } from '../context/UserContext';
 import Constants from 'expo-constants';
@@ -45,8 +48,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const successAnim = useRef(new Animated.Value(0)).current;
 
   const handleLogin = async () => {
     // Validar campos vacíos
@@ -100,34 +101,16 @@ export default function LoginScreen() {
         });
 
         setError('');
-        setShowSuccessModal(true);
-        
-        // Animación de éxito
-        Animated.timing(successAnim, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
-
-        // Esperar y redirigir
-        setTimeout(() => {
-          Animated.timing(successAnim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start(() => {
-            setShowSuccessModal(false);
-            router.push({
-              pathname: '/screens/HomeChoferScreen',
-              params: {
-                user: JSON.stringify({
-                  nombre: data.user?.nombre,
-                  apellido: data.user?.apellido
-                })
-              }
-            });
-          });
-        }, 1200);
+        Keyboard.dismiss();
+        router.push({
+          pathname: '/screens/HomeChoferScreen',
+          params: {
+            user: JSON.stringify({
+              nombre: data.user?.nombre,
+              apellido: data.user?.apellido
+            })
+          }
+        });
 
       } else if (response.status === 401) {
         setError('Correo o contraseña incorrectos');
@@ -153,120 +136,104 @@ export default function LoginScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
-        <LinearGradient
-          colors={['#B3C6FF', '#FFFFFF']}
-          style={styles.gradient}
-        />
-        <View style={styles.contentContainer}>
-          <Image 
-            source={require('../../assets/images/welco.png')} 
-            style={styles.logo} 
-            resizeMode="contain" 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.container}>
+          <LinearGradient
+            colors={['#B3C6FF', '#FFFFFF']}
+            style={styles.gradient}
           />
-          <Text style={styles.title}>Inicio Sesión</Text>
-          <Text style={styles.subtitle}>
-            ¡Escanea, valida y controla los asientos de tu bus fácilmente!
-          </Text>
-
-          {/* Campo Email */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo Electrónico</Text>
-            <TextInput
-              style={[styles.input, error && styles.inputError]}
-              placeholder="hello@example.com"
-              placeholderTextColor="#BDBDBD"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (error) setError(''); // Limpiar error al escribir
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
+          <View style={styles.contentContainer}>
+            <Image 
+              source={require('../../assets/images/welco.png')} 
+              style={styles.logo} 
+              resizeMode="contain" 
             />
-          </View>
+            <Text style={styles.title}>Inicio Sesión</Text>
+            <Text style={styles.subtitle}>
+              ¡Escanea, valida y controla los asientos de tu bus fácilmente!
+            </Text>
 
-          {/* Campo Contraseña */}
-          <View style={styles.inputContainer}>
-            <View style={styles.passwordLabelRow}>
-              <Text style={styles.label}>Contraseña</Text>
-              <TouchableOpacity 
-                onPress={handleForgotPassword} 
-                style={styles.forgotPasswordBtn}
-                disabled={loading}
-              >
-                <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.passwordInputWrapper}>
+            {/* Campo Email */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Correo Electrónico</Text>
               <TextInput
-                style={[styles.inputPassword, error && styles.inputError]}
-                placeholder="••••••••••••••••"
+                style={[styles.input, error && styles.inputError]}
+                placeholder="hello@example.com"
                 placeholderTextColor="#BDBDBD"
-                value={password}
+                value={email}
                 onChangeText={(text) => {
-                  setPassword(text);
+                  setEmail(text);
                   if (error) setError(''); // Limpiar error al escribir
                 }}
-                secureTextEntry={!showPassword}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 editable={!loading}
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButtonInside}
-                disabled={loading}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye' : 'eye-off'}
-                  size={20}
-                  color="#BDBDBD"
-                />
-              </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Mostrar error si existe */}
-          {error ? (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Botón de Login */}
-          <TouchableOpacity 
-            style={[styles.primaryButton, loading && styles.buttonDisabled]} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Modal de éxito */}
-        <Modal
-          visible={showSuccessModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => {}}
-        >
-          <Animated.View style={[
-            styles.modalOverlay,
-            { opacity: successAnim }
-          ]}>
-            <View style={styles.successModalBox}>
-              <View style={styles.successIconCircle}>
-                <Ionicons name="checkmark-circle" size={64} color="#22C55E" />
+            {/* Campo Contraseña */}
+            <View style={styles.inputContainer}>
+              <View style={styles.passwordLabelRow}>
+                <Text style={styles.label}>Contraseña</Text>
+                <TouchableOpacity 
+                  onPress={handleForgotPassword} 
+                  style={styles.forgotPasswordBtn}
+                  disabled={loading}
+                >
+                  <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.successTitle}>¡Bienvenido!</Text>
-              <Text style={styles.successSubtitle}>Inicio de sesión exitoso</Text>
+              <View style={styles.passwordInputWrapper}>
+                <TextInput
+                  style={[styles.inputPassword, error && styles.inputError]}
+                  placeholder="••••••••••••••••"
+                  placeholderTextColor="#BDBDBD"
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (error) setError(''); // Limpiar error al escribir
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!loading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButtonInside}
+                  disabled={loading}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye' : 'eye-off'}
+                    size={20}
+                    color="#BDBDBD"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </Animated.View>
-        </Modal>
-      </View>
+
+            {/* Mostrar error si existe */}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Botón de Login */}
+            <TouchableOpacity 
+              style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </>
   );
 }
@@ -408,42 +375,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     letterSpacing: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  successModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingVertical: 36,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    elevation: 8,
-    minWidth: 260,
-  },
-  successIconCircle: {
-    backgroundColor: '#E6F9ED',
-    borderRadius: 50,
-    padding: 12,
-    marginBottom: 18,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#22C55E',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  successSubtitle: {
-    fontSize: 16,
-    color: '#64748B',
-    textAlign: 'center',
   },
 });

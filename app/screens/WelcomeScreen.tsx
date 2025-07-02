@@ -83,7 +83,7 @@ export default function WelcomeScreen() {
             style={styles.primaryButton}
             onPress={handleLogin}
           >
-            <Text style={styles.buttonText}>COMENZAR</Text>
+            <Text style={styles.buttonText} numberOfLines={1}>COMENZAR</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -144,14 +144,14 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: '#1200d3',
     paddingVertical: 15,
-    paddingHorizontal: 40,
+    paddingHorizontal: 30,
     borderRadius: 25,
-    width: 220,
+    width: 260,
     alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 1,
   },

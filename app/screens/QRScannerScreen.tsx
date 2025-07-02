@@ -1,100 +1,144 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View, Dimensions, ActivityIndicator, Modal } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { useUser } from '../context/UserContext';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
 export default function QRScannerScreen() {
   const router = useRouter();
+  const { user } = useUser();
+  const { hojaTrabajoId } = useLocalSearchParams();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [facing, setFacing] = useState<CameraType>('back');
+  const [boletos, setBoletos] = useState<any[]>([]);
+  const [loadingBoletos, setLoadingBoletos] = useState(true);
+  const [errorBoletos, setErrorBoletos] = useState('');
+  const [boletoEscaneado, setBoletoEscaneado] = useState<any | null>(null);
+  const [validando, setValidando] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    if (!user?.token) return;
+    const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://localhost:3001/';
+    const fetchBoletos = async () => {
+      setLoadingBoletos(true);
+      setErrorBoletos('');
+      try {
+        let url = `${API_URL}boletos/chofer`;
+        if (hojaTrabajoId) url += `?hojaTrabajoId=${hojaTrabajoId}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setBoletos(data);
+        } else {
+          setErrorBoletos(data.message || 'Error al obtener boletos');
+        }
+      } catch (e) {
+        setErrorBoletos('Error de conexión');
+      } finally {
+        setLoadingBoletos(false);
+      }
+    };
+    fetchBoletos();
+  }, [user, hojaTrabajoId]);
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LinearGradient colors={['#B3C6FF', '#FFFFFF']} style={styles.gradient} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#1200d3" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Escáner QR</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={{ color: 'red', fontSize: 18 }}>No hay usuario autenticado.</Text>
+        </View>
+      </View>
+    );
+  }
 
   const handleBarcodeScanned = ({ type, data }: { type: string; data: string }) => {
-    if (scanned) return; // Evita múltiples escaneos
-    
+    if (scanned) return;
     setScanned(true);
     processQRData(data);
   };
 
   const processQRData = (data: string) => {
     try {
-      // Intenta parsear como JSON (para códigos QR estructurados)
       const qrData = JSON.parse(data);
-      
-      // Si es un boleto de transporte
-      if (qrData.type === 'ticket' || qrData.pasajero || qrData.asiento) {
-        Alert.alert(
-          'Boleto Válido ✅',
-          `Pasajero: ${qrData.pasajero || qrData.passenger || 'No especificado'}\n` +
-          `Asiento: ${qrData.asiento || qrData.seat || 'No especificado'}\n` +
-          `Fecha: ${qrData.fecha || qrData.date || 'No especificada'}\n` +
-          `Destino: ${qrData.destino || qrData.destination || 'No especificado'}`,
-          [
-            {
-              text: 'Escanear otro',
-              onPress: () => setScanned(false),
-            },
-            {
-              text: 'Volver',
-              onPress: () => router.back(),
-            },
-          ]
-        );
-      } else {
-        // Para otros tipos de QR estructurados
-        Alert.alert(
-          'QR Escaneado',
-          `Tipo: ${qrData.type || 'Desconocido'}\nContenido: ${JSON.stringify(qrData, null, 2)}`,
-          [
-            {
-              text: 'Escanear otro',
-              onPress: () => setScanned(false),
-            },
-            {
-              text: 'Volver',
-              onPress: () => router.back(),
-            },
-          ]
-        );
+      // Se espera que el QR tenga un idBoleto
+      const idBoleto = qrData.idBoleto || qrData.id || qrData.boletoId;
+      if (!idBoleto) {
+        Alert.alert('QR inválido', 'No se encontró un ID de boleto en el QR.', [
+          { text: 'Escanear otro', onPress: () => setScanned(false) },
+          { text: 'Volver', onPress: () => router.back() },
+        ]);
+        return;
       }
+      // Buscar el boleto en la lista
+      const boleto = boletos.find((b) => b.id == idBoleto);
+      if (!boleto) {
+        Alert.alert('Boleto no válido', 'El boleto no corresponde a esta ruta o ya fue validado.', [
+          { text: 'Escanear otro', onPress: () => setScanned(false) },
+          { text: 'Volver', onPress: () => router.back() },
+        ]);
+        return;
+      }
+      setBoletoEscaneado(boleto);
     } catch (error) {
-      // Si no es JSON, verifica si es una URL
-      if (data.startsWith('http://') || data.startsWith('https://')) {
-        Alert.alert(
-          'URL Escaneada 🔗',
-          `Enlace: ${data}`,
-          [
-            {
-              text: 'Escanear otro',
-              onPress: () => setScanned(false),
-            },
-            {
-              text: 'Volver',
-              onPress: () => router.back(),
-            },
-          ]
-        );
+      Alert.alert('QR inválido', 'El código QR no tiene el formato esperado.', [
+        { text: 'Escanear otro', onPress: () => setScanned(false) },
+        { text: 'Volver', onPress: () => router.back() },
+      ]);
+    }
+  };
+
+  const validarBoleto = async () => {
+    if (!boletoEscaneado) return;
+    setValidando(true);
+    const API_URL = Constants.expoConfig?.extra?.API_URL || 'http://localhost:3001/';
+    try {
+      const res = await fetch(`${API_URL}boletos/abordar/${boletoEscaneado.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowSuccessModal(true);
+        setBoletos((prev) => prev.filter((b) => b.id !== boletoEscaneado.id));
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          setBoletoEscaneado(null);
+          setScanned(false);
+        }, 1500);
       } else {
-        // Para texto plano
-        Alert.alert(
-          'QR Escaneado 📄',
-          `Contenido: ${data}`,
-          [
-            {
-              text: 'Escanear otro',
-              onPress: () => setScanned(false),
-            },
-            {
-              text: 'Volver',
-              onPress: () => router.back(),
-            },
-          ]
-        );
+        Alert.alert('Error', data.message || 'No se pudo validar el boleto.', [
+          { text: 'OK', onPress: () => {
+            setBoletoEscaneado(null);
+            setScanned(false);
+          } }
+        ]);
       }
+    } catch (e) {
+      Alert.alert('Error de conexión', 'No se pudo conectar al servidor.', [
+        { text: 'OK', onPress: () => {
+          setBoletoEscaneado(null);
+          setScanned(false);
+        } }
+      ]);
+    } finally {
+      setValidando(false);
     }
   };
 
@@ -153,6 +197,76 @@ export default function QRScannerScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
+    );
+  }
+
+  if (errorBoletos) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LinearGradient colors={['#B3C6FF', '#FFFFFF']} style={styles.gradient} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#1200d3" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Escáner QR</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={{ color: 'red', fontSize: 18 }}>{errorBoletos}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (boletoEscaneado) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LinearGradient colors={['#B3C6FF', '#FFFFFF']} style={styles.gradient} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#1200d3" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Validar Boleto</Text>
+        </View>
+        <View style={styles.content}>
+          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 10, color: '#1200d3' }}>Boleto encontrado</Text>
+          <Text style={{ fontSize: 18, marginBottom: 6 }}>Pasajero: <Text style={{ fontWeight: 'bold' }}>{boletoEscaneado.nombre}</Text></Text>
+          <Text style={{ fontSize: 18, marginBottom: 6 }}>Cédula: <Text style={{ fontWeight: 'bold' }}>{boletoEscaneado.cedula}</Text></Text>
+          <Text style={{ fontSize: 18, marginBottom: 6 }}>Asiento: <Text style={{ fontWeight: 'bold' }}>{boletoEscaneado.asientoNumero || 'N/A'}</Text></Text>
+          <Text style={{ fontSize: 18, marginBottom: 6 }}>Total pagado: <Text style={{ fontWeight: 'bold' }}>$ {boletoEscaneado.totalPorPer}</Text></Text>
+          <TouchableOpacity
+            style={{ backgroundColor: validando ? '#aaa' : '#1200d3', padding: 16, borderRadius: 12, marginTop: 24, width: 220, alignItems: 'center' }}
+            onPress={validarBoleto}
+            disabled={validando}
+          >
+            <Ionicons name="checkmark-circle" size={24} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>{validando ? 'Validando...' : 'Validar boleto'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ marginTop: 18, alignItems: 'center' }}
+            onPress={() => { setBoletoEscaneado(null); setScanned(false); }}
+            disabled={validando}
+          >
+            <Text style={{ color: '#1200d3', fontSize: 16 }}>Escanear otro</Text>
+          </TouchableOpacity>
+        </View>
+        {/* Modal de éxito visual */}
+        <Modal
+          visible={showSuccessModal}
+          transparent
+          animationType="fade"
+        >
+          <View style={styles.successModalOverlay}>
+            <View style={styles.successModalBox}>
+              <View style={styles.successIconCircle}>
+                <Ionicons name="checkmark" size={64} color="#fff" />
+              </View>
+              <Text style={styles.successText}>Boleto validado correctamente</Text>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -416,5 +530,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 100,
+  },
+  successModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingVertical: 36,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+    minWidth: 220,
+  },
+  successIconCircle: {
+    backgroundColor: '#22C55E',
+    borderRadius: 50,
+    padding: 12,
+    marginBottom: 18,
+  },
+  successText: {
+    fontSize: 18,
+    color: '#222',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useUser } from '../context/UserContext';
 import Constants from 'expo-constants';
+import { Picker } from '@react-native-picker/picker';
 
 export default function PassengerListScreen() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function PassengerListScreen() {
   const [pasajeros, setPasajeros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'todos' | 'embarcados' | 'noEmbarcados'>('todos');
 
   useEffect(() => {
     const fetchPasajeros = async () => {
@@ -41,6 +43,14 @@ export default function PassengerListScreen() {
     fetchPasajeros();
   }, [user, hojaTrabajoId]);
 
+  // Filtrar pasajeros según el filtro seleccionado
+  const pasajerosFiltrados = pasajeros.filter(p => {
+    if (filter === 'todos') return true;
+    if (filter === 'embarcados') return p.usado;
+    if (filter === 'noEmbarcados') return !p.usado;
+    return true;
+  });
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -63,23 +73,50 @@ export default function PassengerListScreen() {
           <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Hora salida: <Text style={{ color: '#000' }}>{hora}</Text></Text>
           {placa && <Text style={{ fontWeight: 'bold', color: '#1200d3' }}>Bus: <Text style={{ color: '#000' }}>{placa}</Text></Text>}
         </View>
+        {/* Filtro de embarque con Picker */}
+        <View style={{ marginHorizontal: 20, marginBottom: 10, borderRadius: 20, backgroundColor: '#E6E6E6', overflow: 'hidden' }}>
+          <Picker
+            selectedValue={filter}
+            onValueChange={(itemValue) => setFilter(itemValue)}
+            style={{ color: '#1200d3', fontWeight: 'bold' }}
+            dropdownIconColor="#1200d3"
+          >
+            <Picker.Item label="Todos" value="todos" />
+            <Picker.Item label="Embarcados" value="embarcados" />
+            <Picker.Item label="No embarcados" value="noEmbarcados" />
+          </Picker>
+        </View>
         {loading ? (
           <ActivityIndicator size="large" color="#1200d3" style={{ marginTop: 30 }} />
         ) : error ? (
           <Text style={{ color: 'red', marginLeft: 20, marginTop: 20 }}>{error}</Text>
         ) : (
           <ScrollView contentContainerStyle={styles.scrollViewContent}>
-            {pasajeros.length === 0 ? (
-              <Text style={{ marginLeft: 20, color: '#888' }}>No hay pasajeros para esta ruta.</Text>
-            ) : pasajeros.map((p) => (
+            {pasajerosFiltrados.length === 0 ? (
+              <Text style={{ marginLeft: 20, color: '#888' }}>No hay pasajeros para este filtro.</Text>
+            ) : pasajerosFiltrados.map((p) => (
               <View key={p.id} style={styles.passengerCard}>
                 <Ionicons name="person-circle" size={60} color="#1200d3" style={styles.avatar} />
                 <View style={styles.passengerInfo}>
                   <Text style={styles.passengerIdLabel}>C.I. <Text style={styles.passengerId}>{p.cedula}</Text></Text>
                   <Text style={styles.passengerName}>{p.nombre}</Text>
-                  <Text style={styles.passengerDetails}>Total sin descuento: $ {p.totalSinDescPorPers}</Text>
+                  <Text style={styles.passengerDetails}>Asiento: {p.asientoNumero}</Text>
                   <Text style={styles.passengerDetails}>Descuento: $ {p.totalDescPorPers}</Text>
                   <Text style={styles.passengerDetails}>Total pagado: $ {p.totalPorPer}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+                    <Ionicons
+                      name={p.usado ? 'checkmark-circle' : 'close-circle'}
+                      size={24}
+                      color={p.usado ? '#22C55E' : '#EF4444'}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={{
+                      color: p.usado ? '#22C55E' : '#EF4444',
+                      fontWeight: 'bold',
+                    }}>
+                      {p.usado ? 'Embarcado' : 'No embarcado'}
+                    </Text>
+                  </View>
                 </View>
               </View>
             ))}

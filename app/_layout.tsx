@@ -27,6 +27,7 @@ export default function RootLayout() {
           <Stack.Screen name="screens/HomeChoferScreen" options={{ headerShown: false }} />
           <Stack.Screen name="screens/QRScannerScreen" options={{ headerShown: false }} />
           <Stack.Screen name="screens/PassengerListScreen" options={{ headerShown: false }} />
+          <Stack.Screen name="screens/BusSeatsScreen" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
